@@ -2,46 +2,53 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>任务管理系统 - 双模式版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>任务管理系统 · 双模式版</title>
+    <!-- Firebase 9.22.0 -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <!-- Tailwind + 额外库 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; transition: all 0.5s ease; }
-        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); }
-        .task-card { animation: slideIn 0.3s ease-out forwards; }
-        @keyframes slideIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
-        .check-square { transition: all 0.2s; }
-        ::-webkit-scrollbar { width:0; }
-        .notification { position: fixed; top:20px; right:20px; z-index:9999; }
-        .mode-tag { position: fixed; top: 20px; left: 20px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 10; }
-        .cloud-mode { background: #e0f2fe; color: #0284c7; }
-        .local-mode { background: #fef3c7; color: #d97706; }
-        .calendar-day { transition: all 0.2s; }
-        .calendar-day:hover { background: #eff6ff; }
-        .calendar-day.active { background: #3b82f6; color: white; }
+        * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { transition: background 0.3s ease; background-color: #f8fafc; }
+        .glass { background: rgba(255,255,255,0.8); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .task-card { animation: fadeSlide 0.25s ease-out; }
+        @keyframes fadeSlide { 0% { opacity:0; transform: translateY(6px); } 100% { opacity:1; transform: translateY(0); } }
+        .check-square { transition: all 0.15s; }
+        .notification { position: fixed; top: 16px; right: 16px; z-index: 9999; max-width: 260px; }
+        .mode-tag { position: fixed; top: 16px; left: 16px; padding: 4px 14px; border-radius: 40px; font-size: 12px; font-weight: 700; z-index: 20; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .cloud-mode { background: #dbeafe; color: #1e40af; border: 1px solid #bfdbfe; }
+        .local-mode { background: #fef9c3; color: #b45309; border: 1px solid #fde68a; }
+        .calendar-day { transition: 0.1s; border-radius: 30px; font-weight: 500; }
+        .calendar-day.active { background: #2563eb; color: white; font-weight: 600; }
+        .calendar-day:active { background: #dbeafe; }
+        ::-webkit-scrollbar { width: 0; background: transparent; }
+        .footer-progress { padding-bottom: env(safe-area-inset-bottom, 0.5rem); }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen text-slate-900">
+<body class="min-h-screen text-slate-900 pb-24">
 
-<!-- 模式提示标签 -->
+<!-- 模式提示标签 (左上角) -->
 <div id="modeTag" class="mode-tag hidden"></div>
-<div id="notification-container" class="notification"></div>
 
-<div class="max-w-7xl mx-auto px-4 py-10 flex flex-col lg:flex-row gap-6">
+<!-- 通知容器 -->
+<div id="notification-container" class="notification space-y-2"></div>
+
+<div class="max-w-7xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
 
     <!-- ====================== 左侧整月日历 ====================== -->
-    <div class="lg:w-72 w-full glass rounded-3xl p-5 shadow-sm h-fit sticky top-10">
+    <div class="lg:w-72 w-full glass rounded-3xl p-4 shadow-sm h-fit sticky top-4">
+        <div class="text-sm font-bold text-slate-500 mb-2 px-1">2026年3月</div>
         <div id="fullMonthCalendar" class="grid grid-cols-7 gap-1 text-center text-sm"></div>
     </div>
 
     <!-- ====================== 右侧主内容 ====================== -->
     <div class="flex-1">
-        <nav class="flex items-center justify-between mb-8 bg-white p-4 rounded-3xl shadow-sm border border-slate-100 glass">
+        <nav class="flex items-center justify-between mb-6 bg-white p-4 rounded-3xl shadow-sm border border-slate-100 glass">
             <div class="flex flex-col">
                 <input type="date" id="datePicker" class="font-extrabold text-slate-800 bg-transparent border-none outline-none text-xl">
                 <div class="flex items-center gap-2">
@@ -49,46 +56,47 @@
                     <span class="text-[10px] font-black text-blue-600 tracking-widest uppercase">Task Manager</span>
                 </div>
             </div>
-            <div class="flex gap-3 flex-wrap">
-                <button onclick="exportTasksToExcel()" class="px-3 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold">导出表格</button>
-                <button onclick="importTasksFromExcel()" class="px-3 py-2 bg-green-600 text-white rounded-xl text-xs font-bold">导入表格</button>
+            <div class="flex gap-2 flex-wrap justify-end">
+                <button onclick="exportTasksToExcel()" class="px-3 py-2 bg-purple-600 text-white rounded-xl text-xs font-bold">导出</button>
+                <button onclick="importTasksFromExcel()" class="px-3 py-2 bg-green-600 text-white rounded-xl text-xs font-bold">导入</button>
                 <button onclick="analyzeTasksWithZhipu()" class="px-3 py-2 bg-orange-600 text-white rounded-xl text-xs font-bold">AI分析</button>
-                <button onclick="jumpToToday()" class="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">TODAY</button>
+                <button onclick="jumpToToday()" class="px-3 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">今天</button>
             </div>
         </nav>
 
-        <div class="flex gap-4 mb-8">
+        <div class="flex gap-3 mb-6">
             <input type="text" id="searchInput" placeholder="🔍 搜索任务..." 
-                   class="flex-1 px-5 py-3 rounded-2xl border-none outline-none">
-            <div class="flex gap-1 p-1 bg-slate-200/50 rounded-2xl w-fit">
+                   class="flex-1 px-5 py-3 rounded-2xl border-none outline-none bg-white/70 glass">
+            <div class="flex gap-1 p-1 bg-slate-200/60 rounded-2xl w-fit">
                 <button onclick="setView('day')" id="btn-day" class="px-5 py-2 text-xs font-bold rounded-xl bg-white shadow-sm">日</button>
                 <button onclick="setView('week')" id="btn-week" class="px-5 py-2 text-xs font-bold rounded-xl text-slate-500">周</button>
                 <button onclick="setView('month')" id="btn-month" class="px-5 py-2 text-xs font-bold rounded-xl text-slate-500">月</button>
             </div>
         </div>
 
-        <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden mb-10">
-            <textarea id="taskInput" placeholder="Enter 发布｜Shift+Enter 换行" rows="6"
+        <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden mb-8">
+            <textarea id="taskInput" placeholder="输入任务，一行一个&#10;格式: 任务名-负责人-3.21  (日期自动识别)&#10;Enter发布 | Shift+Enter换行" rows="5"
                       class="w-full px-6 py-5 border-none outline-none text-sm resize-none bg-transparent"></textarea>
             <div class="bg-slate-50 px-4 py-3 flex justify-between items-center border-t">
-                <span class="text-[10px] text-slate-400 font-bold uppercase">Local/Cloud Sync</span>
-                <button onclick="processInput()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold">发布任务</button>
+                <span class="text-[10px] text-slate-400 font-bold uppercase">Local/Cloud 双模式</span>
+                <button onclick="processInput()" class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold text-sm">发布任务</button>
             </div>
         </div>
 
-        <div id="ai-analysis-result" class="mb-8 glass p-5 rounded-2xl hidden">
-            <h3 class="font-bold text-slate-800 mb-2">AI 分析结果</h3>
+        <div id="ai-analysis-result" class="mb-6 glass p-5 rounded-2xl hidden">
+            <h3 class="font-bold text-slate-800 mb-2 flex items-center gap-2">🤖 AI 分析结果</h3>
             <div id="ai-analysis-content" class="text-sm text-slate-600"></div>
         </div>
 
-        <div id="taskList" class="space-y-4"></div>
+        <div id="taskList" class="space-y-3"></div>
     </div>
 </div>
 
-<footer class="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-xs px-6">
-    <div class="glass border border-white p-3 rounded-2xl flex justify-between items-center px-6">
-        <span class="text-[10px] font-bold text-slate-400 uppercase">Progress</span>
-        <div class="flex-1 mx-4 h-1 bg-slate-100 rounded-full overflow-hidden">
+<!-- 底部进度条 -->
+<footer class="fixed bottom-0 left-0 w-full px-4 pb-3 pt-1 footer-progress">
+    <div class="glass border border-white/50 p-2 rounded-2xl flex justify-between items-center px-5 max-w-md mx-auto shadow-lg">
+        <span class="text-[10px] font-bold text-slate-400 uppercase">进度</span>
+        <div class="flex-1 mx-3 h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div id="progress-bar" class="h-full bg-blue-600 transition-all w-0"></div>
         </div>
         <span id="progress-text" class="text-[10px] font-bold text-slate-900">0%</span>
@@ -132,7 +140,7 @@ function padStart(str, len, ch) {
 function showNotification(msg, type = "info") {
     const c = { success: "bg-green-500", info: "bg-blue-500", warning: "bg-yellow-500", error: "bg-red-500" };
     const div = document.createElement("div");
-    div.className = `${c[type]} text-white px-4 py-2 rounded-lg text-sm mb-2`;
+    div.className = `${c[type]} text-white px-4 py-2 rounded-lg text-sm mb-2 shadow-lg`;
     div.innerText = msg;
     document.getElementById("notification-container").appendChild(div);
     setTimeout(() => div.remove(), 3000);
@@ -149,6 +157,7 @@ function parseDateFromLine(line) {
 // ====================== 整月日历生成 ======================
 function renderFullMonthCalendar() {
     const container = document.getElementById("fullMonthCalendar");
+    if (!container) return;
     container.innerHTML = "";
     const today = new Date();
     const year = today.getFullYear();
@@ -196,12 +205,12 @@ async function init() {
         await initFirebase();
         currentMode = "cloud";
         updateModeUI();
-        showNotification("已连接云端（VPN）", "success");
+        showNotification("已连接云端", "success");
     } catch (e) {
         currentMode = "local";
         updateModeUI();
         loadLocalTasks();
-        showNotification("本地模式（无需VPN）", "warning");
+        showNotification("本地模式 (无VPN可用)", "warning");
     }
     initEventListeners();
     renderTasks();
@@ -235,14 +244,14 @@ function updateModeUI() {
     tag.classList.remove("hidden");
     if (currentMode === "cloud") {
         tag.className = "mode-tag cloud-mode";
-        tag.innerText = "云端模式";
+        tag.innerText = "☁️ 云端模式";
     } else {
         tag.className = "mode-tag local-mode";
-        tag.innerText = "本地模式";
+        tag.innerText = "📱 本地模式";
     }
 }
 
-// ====================== 任务 ======================
+// ====================== 任务操作 ======================
 function processInput() {
     const ipt = document.getElementById("taskInput");
     const raw = ipt.value.trim();
@@ -272,18 +281,26 @@ function processInput() {
 }
 function toggleTask(id) {
     allTasks[id].completed = !allTasks[id].completed;
-    currentMode === "cloud" ? firebaseDB.child(id).update({completed:allTasks[id].completed}) : saveLocalTasks();
+    if (currentMode === "cloud" && firebaseDB) {
+        firebaseDB.child(id).update({completed: allTasks[id].completed});
+    } else {
+        saveLocalTasks();
+    }
     renderTasks();
 }
 function deleteTask(id) {
     if (!confirm("确定删除？")) return;
     delete allTasks[id];
-    currentMode === "cloud" ? firebaseDB.child(id).remove() : saveLocalTasks();
+    if (currentMode === "cloud" && firebaseDB) {
+        firebaseDB.child(id).remove();
+    } else {
+        saveLocalTasks();
+    }
     showNotification("已删除");
     renderTasks();
 }
 
-// ====================== 渲染（核心修改：排序逻辑） ======================
+// ====================== 渲染 ======================
 function renderTasks() {
     renderFullMonthCalendar();
     const list = document.getElementById("taskList");
@@ -291,10 +308,8 @@ function renderTasks() {
     const search = document.getElementById("searchInput").value.toLowerCase();
     let arr = Object.entries(allTasks).map(([id,v])=>({id,...v}));
     
-    // 1. 搜索筛选
     arr = arr.filter(t => t.content.toLowerCase().includes(search) || t.owner.toLowerCase().includes(search));
     
-    // 2. 视图筛选
     arr = arr.filter(t => {
         const td = t.deadline;
         if (currentView === "day") return td === viewDate;
@@ -309,38 +324,33 @@ function renderTasks() {
         return true;
     });
 
-    // 3. 核心修改：按视图类型差异化排序
+    // 排序
     if (currentView === "day") {
-        // 日视图：按创建时间降序（最新创建的在前）
         arr.sort((a,b)=>b.timestamp - a.timestamp);
     } else {
-        // 周/月视图：优先按截止日期升序（先到期的在前），同日期按创建时间降序
         arr.sort((a,b)=>{
-            // 先比较截止日期
             if (a.deadline < b.deadline) return -1;
             if (a.deadline > b.deadline) return 1;
-            // 同日期则按创建时间降序
             return b.timestamp - a.timestamp;
         });
     }
 
-    // 4. 渲染任务列表
     list.innerHTML = "";
     if (arr.length === 0) { 
-        list.innerHTML = '<div class="text-center py-10 text-slate-400">暂无任务</div>'; 
+        list.innerHTML = '<div class="text-center py-10 text-slate-400">✨ 暂无任务，添加一条吧</div>'; 
         updateProgress([]); 
         return; 
     }
     arr.forEach(t => {
         const div = document.createElement("div");
-        div.className = `task-card glass p-5 rounded-3xl flex items-start gap-5 ${t.completed?'opacity-50':''}`;
+        div.className = `task-card glass p-5 rounded-3xl flex items-start gap-4 ${t.completed?'opacity-50':''}`;
         div.innerHTML = `
             <div onclick="toggleTask('${t.id}')" class="check-square w-9 h-9 rounded-xl border-2 cursor-pointer flex items-center justify-center ${t.completed?'bg-green-500 border-green-500 text-white':'border-slate-200 text-transparent'}">✔</div>
             <div class="flex-1">
                 <div class="flex items-center gap-2 flex-wrap"><span class="font-bold ${t.completed?'line-through':''}">${t.content}</span><span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-md">${t.owner}</span></div>
-                <p class="text-[10px] text-slate-400 mt-1">日期：${t.deadline}</p>
+                <p class="text-[10px] text-slate-400 mt-1">📅 ${t.deadline}</p>
             </div>
-            <button onclick="deleteTask('${t.id}')" class="text-slate-300 hover:text-red-500">✕</button>
+            <button onclick="deleteTask('${t.id}')" class="text-slate-300 hover:text-red-500 text-lg w-8 h-8 flex items-center justify-center">✕</button>
         `;
         list.appendChild(div);
     });
@@ -354,7 +364,7 @@ function updateProgress(tasks) {
     document.getElementById("progress-text").innerText = p+"%";
 }
 
-// ====================== Excel ======================
+// ====================== Excel导入导出 ======================
 function exportTasksToExcel() {
     const arr = Object.values(allTasks).map(t=>({任务:t.content,负责人:t.owner,日期:t.deadline,状态:t.completed?"已完成":"未完成"}));
     const wb = XLSX.utils.book_new();
@@ -387,7 +397,11 @@ function importTasksFromExcel() {
                 };
             });
             allTasks = {...allTasks,...add};
-            currentMode === "cloud" ? firebaseDB.set(allTasks) : saveLocalTasks();
+            if (currentMode === "cloud" && firebaseDB) {
+                firebaseDB.set(allTasks);
+            } else {
+                saveLocalTasks();
+            }
             showNotification("导入成功","success");
             renderTasks();
         };
@@ -396,7 +410,7 @@ function importTasksFromExcel() {
     ipt.click();
 }
 
-// ====================== AI ======================
+// ====================== AI分析 ======================
 async function analyzeTasksWithZhipu() {
     const res = document.getElementById("ai-analysis-result");
     const con = document.getElementById("ai-analysis-content");
@@ -404,7 +418,7 @@ async function analyzeTasksWithZhipu() {
     con.innerText = "分析中...";
     try {
         const arr = Object.values(allTasks);
-        if (!arr.length) { con.innerText = "无任务"; return; }
+        if (!arr.length) { con.innerText = "无任务可分析"; return; }
         const g = {};
         arr.forEach(t=>{const o=t.owner||"全员";g[o]?g[o].push(t):g[o]=[t]});
         let p = "请分析任务分配是否合理，给出简洁建议：\n";
@@ -437,8 +451,12 @@ function setView(v) {
     currentView = v;
     ["day","week","month"].forEach(t=>{
         const el = document.getElementById("btn-"+t);
-        el.classList[t===v?"add":"remove"]("bg-white","shadow-sm","text-slate-900");
-        el.classList[t===v?"remove":"add"]("text-slate-500");
+        if (el) {
+            el.classList.toggle("bg-white", t===v);
+            el.classList.toggle("shadow-sm", t===v);
+            el.classList.toggle("text-slate-900", t===v);
+            el.classList.toggle("text-slate-500", t!==v);
+        }
     });
     renderTasks();
 }
@@ -450,5 +468,4 @@ function jumpToToday() {
 window.onload = init;
 </script>
 </body>
-
 </html>
