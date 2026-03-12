@@ -21,11 +21,8 @@
         .mode-tag { position: fixed; top: 20px; left: 20px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 10; }
         .cloud-mode { background: #e0f2fe; color: #0284c7; }
         .local-mode { background: #fef3c7; color: #d97706; }
-        .calendar-day { transition: all 0.2s; }
-        .calendar-day:hover { background: #eff6ff; }
-        .calendar-day.active { background: #3b82f6; color: white; }
         
-        /* ========== 移动端专用优化（完整版） ========== */
+        /* ========== 移动端专用优化 ========== */
         @media screen and (max-width: 768px) {
             /* 全局调整 */
             body {
@@ -44,48 +41,6 @@
                 z-index: 100;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.15);
                 border-radius: 30px;
-            }
-            
-            /* ===== 左侧日历 - 修复滑动定位问题 ===== */
-            .calendar-container {
-                position: sticky !important;
-                top: 10px !important;
-                z-index: 90 !important;
-                width: 100% !important;
-                margin-bottom: 20px !important;
-                padding: 18px 15px !important;
-                border-radius: 28px !important;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-                background: rgba(255,255,255,0.95) !important;
-            }
-            
-            #fullMonthCalendar {
-                min-width: 650px;
-                grid-template-columns: repeat(7, minmax(75px, 1fr));
-                gap: 6px;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                padding-bottom: 8px;
-            }
-            
-            .calendar-day {
-                padding: 16px 5px;
-                font-size: 17px;
-                font-weight: 500;
-                border-radius: 40px;
-                min-width: 60px;
-                height: 60px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            /* 确保主内容区域正常滑动 */
-            .main-content {
-                position: relative !important;
-                overflow: visible !important;
-                width: 100%;
-                z-index: 10;
             }
             
             /* 导航栏优化 */
@@ -306,13 +261,6 @@
                 font-size: 13px !important;
                 padding: 14px 4px !important;
             }
-            
-            .calendar-day {
-                padding: 12px 3px;
-                font-size: 15px;
-                min-width: 50px;
-                height: 50px;
-            }
         }
     </style>
 </head>
@@ -322,15 +270,10 @@
 <div id="modeTag" class="mode-tag hidden"></div>
 <div id="notification-container" class="notification"></div>
 
-<div class="max-w-7xl mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
-
-    <!-- ====================== 左侧整月日历（修复定位） ====================== -->
-    <div class="lg:w-72 w-full glass rounded-3xl p-5 shadow-sm h-fit calendar-container">
-        <div id="fullMonthCalendar" class="grid grid-cols-7 gap-1 text-center text-sm"></div>
-    </div>
-
-    <!-- ====================== 右侧主内容 ====================== -->
-    <div class="flex-1 main-content">
+<!-- 移除大日历后，主内容区域占满整个宽度 -->
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- ====================== 主内容 ====================== -->
+    <div class="main-content">
         <nav class="flex items-center justify-between mb-8 bg-white p-4 rounded-3xl shadow-sm border border-slate-100 glass">
             <div class="flex flex-col">
                 <input type="date" id="datePicker" class="font-extrabold text-slate-800 bg-transparent border-none outline-none text-xl">
@@ -393,7 +336,7 @@ const CONFIG = {
         authDomain: "project-960311529821268991.firebaseapp.com",
         databaseURL: "https://project-960311529821268991-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "project-960311529821268991",
-        storageBucket: "project-960311529821268991.firebasestorage.app",
+        storageBucket: "project-960311529821268991.appspot.com",
         messagingSenderId: "937001668869",
         appId: "1:937001668869:web:7fbc269aba4bfd68e1a76c"
     },
@@ -436,52 +379,9 @@ function parseDateFromLine(line) {
     return todayStr;
 }
 
-// ====================== 整月日历生成 ======================
-function renderFullMonthCalendar() {
-    const container = document.getElementById("fullMonthCalendar");
-    container.innerHTML = "";
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const firstWeekDay = firstDay.getDay() || 7;
-
-    const weekNames = ["一", "二", "三", "四", "五", "六", "日"];
-    weekNames.forEach(w => {
-        const el = document.createElement("div");
-        el.className = "font-bold text-xs text-slate-500 py-1";
-        el.innerText = w;
-        container.appendChild(el);
-    });
-
-    for (let i = 1; i < firstWeekDay; i++) {
-        const empty = document.createElement("div");
-        container.appendChild(empty);
-    }
-
-    const currentDate = document.getElementById("datePicker").value;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${padStart(month+1,2,'0')}-${padStart(d,2,'0')}`;
-        const dayEl = document.createElement("div");
-        dayEl.className = `calendar-day py-2 rounded-lg cursor-pointer text-sm ${dateStr === currentDate ? 'active' : ''}`;
-        dayEl.innerText = d;
-        dayEl.onclick = () => {
-            document.getElementById("datePicker").value = dateStr;
-            setView('day');
-            renderTasks();
-            renderFullMonthCalendar();
-        };
-        container.appendChild(dayEl);
-    }
-}
-
 // ====================== 初始化 & 双模式 ======================
 async function init() {
     document.getElementById("datePicker").value = todayStr;
-    renderFullMonthCalendar();
     try {
         await initFirebase();
         currentMode = "cloud";
@@ -495,20 +395,6 @@ async function init() {
     }
     initEventListeners();
     renderTasks();
-    // 修复移动端滚动时日历定位
-    fixMobileCalendarPosition();
-}
-
-// 修复移动端日历滚动定位
-function fixMobileCalendarPosition() {
-    if (window.innerWidth <= 768) {
-        const calendarEl = document.querySelector('.calendar-container');
-        window.addEventListener('scroll', () => {
-            // 确保sticky定位生效
-            calendarEl.style.top = '10px';
-            calendarEl.style.zIndex = '90';
-        });
-    }
 }
 
 async function initFirebase() {
@@ -589,14 +475,15 @@ function deleteTask(id) {
 
 // ====================== 渲染 ======================
 function renderTasks() {
-    renderFullMonthCalendar();
     const list = document.getElementById("taskList");
     const viewDate = document.getElementById("datePicker").value;
     const search = document.getElementById("searchInput").value.toLowerCase();
     let arr = Object.entries(allTasks).map(([id,v])=>({id,...v}));
     
+    // 搜索过滤
     arr = arr.filter(t => t.content.toLowerCase().includes(search) || t.owner.toLowerCase().includes(search));
     
+    // 视图过滤
     arr = arr.filter(t => {
         const td = t.deadline;
         if (currentView === "day") return td === viewDate;
@@ -611,6 +498,7 @@ function renderTasks() {
         return true;
     });
 
+    // 排序
     if (currentView === "day") {
         arr.sort((a,b)=>b.timestamp - a.timestamp);
     } else {
@@ -621,6 +509,7 @@ function renderTasks() {
         });
     }
 
+    // 渲染任务列表
     list.innerHTML = "";
     if (arr.length === 0) { 
         list.innerHTML = '<div class="text-center py-16 text-slate-400 text-lg">✨ 暂无任务，添加一条吧</div>'; 
@@ -727,23 +616,10 @@ function initEventListeners() {
         }
     });
     document.getElementById("searchInput").addEventListener("input",renderTasks);
-    document.getElementById("datePicker").addEventListener("change",()=>{renderTasks();renderFullMonthCalendar()});
+    document.getElementById("datePicker").addEventListener("change",renderTasks);
 }
 function setView(v) {
     currentView = v;
     ["day","week","month"].forEach(t=>{
         const el = document.getElementById("btn-"+t);
         el.classList[t===v?"add":"remove"]("bg-white","shadow-sm","text-slate-900");
-        el.classList[t===v?"remove":"add"]("text-slate-500");
-    });
-    renderTasks();
-}
-function jumpToToday() {
-    document.getElementById("datePicker").value = todayStr;
-    setView("day");
-}
-
-window.onload = init;
-</script>
-</body>
-</html>
