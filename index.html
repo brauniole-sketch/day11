@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>任务管理系统 - 双模式版</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>任务管理系统 · 移动优化版</title>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -11,19 +11,258 @@
     <script src="https://cdn.jsdelivr.net/npm/axios@1.4.0/dist/axios.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-        body { font-family: 'Inter', sans-serif; transition: all 0.5s ease; }
-        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); }
+        body { font-family: 'Inter', sans-serif; transition: all 0.5s ease; background-color: #f8fafc; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
         .task-card { animation: slideIn 0.3s ease-out forwards; }
         @keyframes slideIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform: translateY(0); } }
         .check-square { transition: all 0.2s; }
-        ::-webkit-scrollbar { width:0; }
+        ::-webkit-scrollbar { width:0; background: transparent; }
         .notification { position: fixed; top:20px; right:20px; z-index:9999; }
         .mode-tag { position: fixed; top: 20px; left: 20px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; z-index: 10; }
         .cloud-mode { background: #e0f2fe; color: #0284c7; }
         .local-mode { background: #fef3c7; color: #d97706; }
-        .calendar-day { transition: all 0.2s; }
-        .calendar-day:hover { background: #eff6ff; }
-        .calendar-day.active { background: #3b82f6; color: white; }
+        
+        /* ========== 移动端专用优化 ========== */
+        @media screen and (max-width: 768px) {
+            /* 全局调整 */
+            body {
+                padding-bottom: 100px;
+                font-size: 16px;
+                min-height: 100vh;
+                padding-top: 20px;
+            }
+            
+            /* 模式标签调整 */
+            .mode-tag {
+                top: 10px;
+                left: 10px;
+                padding: 8px 18px;
+                font-size: 14px;
+                z-index: 100;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                border-radius: 30px;
+            }
+            
+            /* 导航栏优化 */
+            nav {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 18px;
+                padding: 20px 18px !important;
+                border-radius: 32px !important;
+                margin-bottom: 20px;
+            }
+            
+            nav > div:first-child {
+                width: 100%;
+            }
+            
+            #dateDisplay {
+                font-size: 26px !important;
+                width: 100%;
+                padding: 10px 0;
+                font-weight: 700;
+                cursor: pointer;
+            }
+            
+            .flex.items-center.gap-2 {
+                margin-top: 8px;
+            }
+            
+            #sync-status {
+                width: 10px !important;
+                height: 10px !important;
+            }
+            
+            nav .flex.gap-3 {
+                justify-content: space-between;
+                width: 100%;
+                gap: 8px !important;
+            }
+            
+            nav button {
+                flex: 1;
+                padding: 16px 8px !important;
+                font-size: 15px !important;
+                white-space: nowrap;
+                border-radius: 20px !important;
+                font-weight: 600;
+            }
+            
+            /* 搜索和视图切换行 */
+            .flex.gap-4.mb-8 {
+                flex-direction: column;
+                gap: 16px !important;
+                margin-bottom: 20px !important;
+            }
+            
+            #searchInput {
+                width: 100%;
+                padding: 18px 22px !important;
+                font-size: 17px;
+                border-radius: 40px !important;
+                background: white;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+            }
+            
+            .flex.gap-1.p-1 {
+                width: 100%;
+                justify-content: stretch;
+                padding: 6px !important;
+                border-radius: 40px !important;
+            }
+            
+            .flex.gap-1.p-1 button {
+                flex: 1;
+                padding: 16px 8px !important;
+                font-size: 17px !important;
+                border-radius: 30px !important;
+            }
+            
+            /* 任务输入框优化 */
+            .bg-white.rounded-\[2rem\] {
+                margin-bottom: 25px;
+                border-radius: 36px !important;
+            }
+            
+            #taskInput {
+                padding: 22px 20px !important;
+                font-size: 17px;
+                min-height: 160px;
+                line-height: 1.5;
+            }
+            
+            .bg-slate-50.px-4.py-3 {
+                padding: 16px 22px !important;
+            }
+            
+            .bg-slate-50.px-4.py-3 button {
+                padding: 14px 28px !important;
+                font-size: 17px !important;
+                border-radius: 30px !important;
+            }
+            
+            /* 任务卡片优化 */
+            #taskList {
+                gap: 16px !important;
+            }
+            
+            .task-card {
+                padding: 20px 18px !important;
+                gap: 16px !important;
+                border-radius: 32px !important;
+            }
+            
+            .check-square {
+                width: 52px !important;
+                height: 52px !important;
+                font-size: 24px;
+                flex-shrink: 0;
+                border-radius: 18px !important;
+                border-width: 2.5px;
+            }
+            
+            .task-card .flex-1 {
+                min-width: 0;
+            }
+            
+            .task-card .font-bold {
+                font-size: 18px;
+                line-height: 1.4;
+                word-break: break-word;
+                margin-bottom: 6px;
+            }
+            
+            .task-card .bg-blue-50 {
+                padding: 6px 16px !important;
+                font-size: 14px !important;
+                border-radius: 30px !important;
+                display: inline-block;
+            }
+            
+            .task-card .text-\[10px\] {
+                font-size: 15px !important;
+                margin-top: 8px !important;
+                color: #64748b;
+            }
+            
+            .task-card button {
+                width: 48px;
+                height: 48px;
+                font-size: 22px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 24px;
+            }
+            
+            /* AI分析结果框 */
+            #ai-analysis-result {
+                padding: 22px !important;
+                border-radius: 32px !important;
+                margin-bottom: 25px;
+            }
+            
+            #ai-analysis-content {
+                font-size: 16px !important;
+                line-height: 1.6;
+            }
+            
+            /* 底部进度条优化 */
+            footer.fixed {
+                padding: 0 16px 20px 16px;
+                left: 0;
+                right: 0;
+                width: 100%;
+                transform: none;
+                max-width: 100%;
+                z-index: 80;
+            }
+            
+            footer .glass {
+                padding: 16px 25px !important;
+                border-radius: 40px !important;
+                background: rgba(255,255,255,0.95);
+            }
+            
+            footer .text-\[10px\] {
+                font-size: 14px !important;
+                letter-spacing: 0.5px;
+            }
+            
+            #progress-text {
+                font-size: 16px !important;
+                font-weight: 700;
+            }
+            
+            .flex-1.mx-4.h-1 {
+                height: 8px !important;
+                border-radius: 20px;
+            }
+            
+            /* 暂无任务提示 */
+            .text-center.py-10 {
+                padding: 50px 20px !important;
+                font-size: 18px;
+            }
+        }
+
+        /* 小屏幕iPhone SE等优化 */
+        @media screen and (max-width: 375px) {
+            .task-card .font-bold {
+                font-size: 16px;
+            }
+            
+            .check-square {
+                width: 48px !important;
+                height: 48px !important;
+            }
+            
+            nav button {
+                font-size: 13px !important;
+                padding: 14px 4px !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen text-slate-900">
@@ -32,21 +271,20 @@
 <div id="modeTag" class="mode-tag hidden"></div>
 <div id="notification-container" class="notification"></div>
 
-<div class="max-w-7xl mx-auto px-4 py-10 flex flex-col lg:flex-row gap-6">
-
-    <!-- ====================== 左侧整月日历 ====================== -->
-    <div class="lg:w-72 w-full glass rounded-3xl p-5 shadow-sm h-fit sticky top-10">
-        <div id="fullMonthCalendar" class="grid grid-cols-7 gap-1 text-center text-sm"></div>
-    </div>
-
-    <!-- ====================== 右侧主内容 ====================== -->
-    <div class="flex-1">
+<!-- 移除大日历后，主内容区域占满整个宽度 -->
+<div class="max-w-7xl mx-auto px-4 py-6">
+    <!-- ====================== 主内容 ====================== -->
+    <div class="main-content">
         <nav class="flex items-center justify-between mb-8 bg-white p-4 rounded-3xl shadow-sm border border-slate-100 glass">
             <div class="flex flex-col">
-                <input type="date" id="datePicker" class="font-extrabold text-slate-800 bg-transparent border-none outline-none text-xl">
+                <!-- 日期显示区域 -->
+                <div id="dateDisplay" class="font-extrabold text-slate-800 text-xl cursor-pointer" onclick="document.getElementById('datePicker').showPicker()">
+                    yyyy/mm/日
+                </div>
+                <input type="date" id="datePicker" class="hidden">
                 <div class="flex items-center gap-2">
                     <span id="sync-status" class="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span class="text-[10px] font-black text-blue-600 tracking-widest uppercase">Task Manager</span>
+                    <span class="text-[10px] font-black text-blue-600 tracking-widest uppercase">TASK MANAGER</span>
                 </div>
             </div>
             <div class="flex gap-3 flex-wrap">
@@ -59,7 +297,7 @@
 
         <div class="flex gap-4 mb-8">
             <input type="text" id="searchInput" placeholder="🔍 搜索任务..." 
-                   class="flex-1 px-5 py-3 rounded-2xl border-none outline-none">
+                   class="flex-1 px-5 py-3 rounded-2xl border-none outline-none bg-white">
             <div class="flex gap-1 p-1 bg-slate-200/50 rounded-2xl w-fit">
                 <button onclick="setView('day')" id="btn-day" class="px-5 py-2 text-xs font-bold rounded-xl bg-white shadow-sm">日</button>
                 <button onclick="setView('week')" id="btn-week" class="px-5 py-2 text-xs font-bold rounded-xl text-slate-500">周</button>
@@ -68,7 +306,7 @@
         </div>
 
         <div class="bg-white rounded-[2rem] shadow-xl border border-slate-100 overflow-hidden mb-10">
-            <textarea id="taskInput" placeholder="Enter 发布｜Shift+Enter 换行" rows="6"
+            <textarea id="taskInput" placeholder="Enter 发布｜Shift+Enter 换行｜格式: 任务名-负责人-3.21" rows="6"
                       class="w-full px-6 py-5 border-none outline-none text-sm resize-none bg-transparent"></textarea>
             <div class="bg-slate-50 px-4 py-3 flex justify-between items-center border-t">
                 <span class="text-[10px] text-slate-400 font-bold uppercase">Local/Cloud Sync</span>
@@ -103,7 +341,7 @@ const CONFIG = {
         authDomain: "project-960311529821268991.firebaseapp.com",
         databaseURL: "https://project-960311529821268991-default-rtdb.asia-southeast1.firebasedatabase.app",
         projectId: "project-960311529821268991",
-        storageBucket: "project-960311529821268991.firebasestorage.app",
+        storageBucket: "project-960311529821268991.appspot.com",
         messagingSenderId: "937001668869",
         appId: "1:937001668869:web:7fbc269aba4bfd68e1a76c"
     },
@@ -132,7 +370,7 @@ function padStart(str, len, ch) {
 function showNotification(msg, type = "info") {
     const c = { success: "bg-green-500", info: "bg-blue-500", warning: "bg-yellow-500", error: "bg-red-500" };
     const div = document.createElement("div");
-    div.className = `${c[type]} text-white px-4 py-2 rounded-lg text-sm mb-2`;
+    div.className = `${c[type]} text-white px-5 py-3 rounded-xl text-base mb-2 shadow-lg`;
     div.innerText = msg;
     document.getElementById("notification-container").appendChild(div);
     setTimeout(() => div.remove(), 3000);
@@ -146,52 +384,19 @@ function parseDateFromLine(line) {
     return todayStr;
 }
 
-// ====================== 整月日历生成 ======================
-function renderFullMonthCalendar() {
-    const container = document.getElementById("fullMonthCalendar");
-    container.innerHTML = "";
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = today.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const firstWeekDay = firstDay.getDay() || 7;
-
-    const weekNames = ["一", "二", "三", "四", "五", "六", "日"];
-    weekNames.forEach(w => {
-        const el = document.createElement("div");
-        el.className = "font-bold text-xs text-slate-500 py-1";
-        el.innerText = w;
-        container.appendChild(el);
-    });
-
-    for (let i = 1; i < firstWeekDay; i++) {
-        const empty = document.createElement("div");
-        container.appendChild(empty);
-    }
-
-    const currentDate = document.getElementById("datePicker").value;
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateStr = `${year}-${padStart(month+1,2,'0')}-${padStart(d,2,'0')}`;
-        const dayEl = document.createElement("div");
-        dayEl.className = `calendar-day py-2 rounded-lg cursor-pointer text-sm ${dateStr === currentDate ? 'active' : ''}`;
-        dayEl.innerText = d;
-        dayEl.onclick = () => {
-            document.getElementById("datePicker").value = dateStr;
-            setView('day');
-            renderTasks();
-            renderFullMonthCalendar();
-        };
-        container.appendChild(dayEl);
-    }
+// 格式化日期为 yyyy/mm/日
+function formatDate(dateStr) {
+    const [y, m, d] = dateStr.split('-');
+    return `${y}/${m}/${d}`;
 }
 
 // ====================== 初始化 & 双模式 ======================
 async function init() {
-    document.getElementById("datePicker").value = todayStr;
-    renderFullMonthCalendar();
+    const datePicker = document.getElementById("datePicker");
+    const dateDisplay = document.getElementById("dateDisplay");
+    datePicker.value = todayStr;
+    dateDisplay.textContent = formatDate(todayStr); // 初始显示
+
     try {
         await initFirebase();
         currentMode = "cloud";
@@ -283,18 +488,17 @@ function deleteTask(id) {
     renderTasks();
 }
 
-// ====================== 渲染（核心修改：排序逻辑） ======================
+// ====================== 渲染 ======================
 function renderTasks() {
-    renderFullMonthCalendar();
     const list = document.getElementById("taskList");
     const viewDate = document.getElementById("datePicker").value;
     const search = document.getElementById("searchInput").value.toLowerCase();
     let arr = Object.entries(allTasks).map(([id,v])=>({id,...v}));
     
-    // 1. 搜索筛选
+    // 搜索过滤
     arr = arr.filter(t => t.content.toLowerCase().includes(search) || t.owner.toLowerCase().includes(search));
     
-    // 2. 视图筛选
+    // 视图过滤
     arr = arr.filter(t => {
         const td = t.deadline;
         if (currentView === "day") return td === viewDate;
@@ -309,25 +513,21 @@ function renderTasks() {
         return true;
     });
 
-    // 3. 核心修改：按视图类型差异化排序
+    // 排序
     if (currentView === "day") {
-        // 日视图：按创建时间降序（最新创建的在前）
         arr.sort((a,b)=>b.timestamp - a.timestamp);
     } else {
-        // 周/月视图：优先按截止日期升序（先到期的在前），同日期按创建时间降序
         arr.sort((a,b)=>{
-            // 先比较截止日期
             if (a.deadline < b.deadline) return -1;
             if (a.deadline > b.deadline) return 1;
-            // 同日期则按创建时间降序
             return b.timestamp - a.timestamp;
         });
     }
 
-    // 4. 渲染任务列表
+    // 渲染任务列表
     list.innerHTML = "";
     if (arr.length === 0) { 
-        list.innerHTML = '<div class="text-center py-10 text-slate-400">暂无任务</div>'; 
+        list.innerHTML = '<div class="text-center py-16 text-slate-400 text-lg">✨ 暂无任务，添加一条吧</div>'; 
         updateProgress([]); 
         return; 
     }
@@ -340,7 +540,7 @@ function renderTasks() {
                 <div class="flex items-center gap-2 flex-wrap"><span class="font-bold ${t.completed?'line-through':''}">${t.content}</span><span class="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-md">${t.owner}</span></div>
                 <p class="text-[10px] text-slate-400 mt-1">日期：${t.deadline}</p>
             </div>
-            <button onclick="deleteTask('${t.id}')" class="text-slate-300 hover:text-red-500">✕</button>
+            <button onclick="deleteTask('${t.id}')" class="text-slate-300 hover:text-red-500 text-xl">✕</button>
         `;
         list.appendChild(div);
     });
@@ -431,7 +631,14 @@ function initEventListeners() {
         }
     });
     document.getElementById("searchInput").addEventListener("input",renderTasks);
-    document.getElementById("datePicker").addEventListener("change",()=>{renderTasks();renderFullMonthCalendar()});
+    
+    // 日期变更监听
+    const datePicker = document.getElementById("datePicker");
+    const dateDisplay = document.getElementById("dateDisplay");
+    datePicker.addEventListener("change", () => {
+        dateDisplay.textContent = formatDate(datePicker.value);
+        renderTasks();
+    });
 }
 function setView(v) {
     currentView = v;
@@ -443,7 +650,10 @@ function setView(v) {
     renderTasks();
 }
 function jumpToToday() {
-    document.getElementById("datePicker").value = todayStr;
+    const datePicker = document.getElementById("datePicker");
+    const dateDisplay = document.getElementById("dateDisplay");
+    datePicker.value = todayStr;
+    dateDisplay.textContent = formatDate(todayStr);
     setView("day");
 }
 
